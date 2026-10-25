@@ -79,6 +79,25 @@ class Prefs(ctx: Context) {
         pinned = list
     }
 
+    var backgroundMode: BackgroundMode
+        get() = runCatching { BackgroundMode.valueOf(sp.getString("bg_mode", null) ?: "") }.getOrDefault(BackgroundMode.AURORA)
+        set(v) = sp.edit().putString("bg_mode", v.name).apply()
+
+    var slideshowMinutes: Int
+        get() = sp.getInt("slideshow_minutes", 5)
+        set(v) = sp.edit().putInt("slideshow_minutes", v).apply()
+
+    fun photoList(mode: BackgroundMode): List<String> =
+        (sp.getString("photos_" + mode.name, "") ?: "").split('\n').filter { it.isNotBlank() }
+
+    fun setPhotoList(mode: BackgroundMode, urls: List<String>) =
+        sp.edit().putString("photos_" + mode.name, urls.joinToString("\n"))
+            .putLong("photos_at_" + mode.name, System.currentTimeMillis()).apply()
+
+    fun photoListFetchedAt(mode: BackgroundMode): Long = sp.getLong("photos_at_" + mode.name, 0L)
+
+    fun clearPhotoListTime(mode: BackgroundMode) = sp.edit().remove("photos_at_" + mode.name).apply()
+
     fun pin(pkg: String) {
         if (pkg !in pinned) pinned = pinned + pkg
     }

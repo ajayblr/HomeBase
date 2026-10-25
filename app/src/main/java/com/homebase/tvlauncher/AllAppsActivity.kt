@@ -18,6 +18,7 @@ class AllAppsActivity : Activity() {
     private lateinit var grid: GridView
     private lateinit var adapter: TileAdapter
     private lateinit var prefs: Prefs
+    private val backgrounds by lazy { Backgrounds(this, findViewById(R.id.aurora), findViewById(R.id.photos)) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,11 +39,11 @@ class AllAppsActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refresh()
-        findViewById<AuroraView>(R.id.aurora).start()
+        backgrounds.start()
     }
 
     override fun onPause() {
-        findViewById<AuroraView>(R.id.aurora).stop()
+        backgrounds.stop()
         super.onPause()
     }
 

@@ -78,6 +78,17 @@ jobs:
           }
           JSON
           cat version.json
+          # List the photos in wallpapers/ for the TV's "Your photos" background
+          python3 - <<'LIST'
+          import json, os, urllib.parse
+          repo = os.environ["GITHUB_REPOSITORY"]
+          branch = os.environ.get("GITHUB_REF_NAME", "main")
+          exts = (".jpg", ".jpeg", ".png", ".webp")
+          files = sorted(f for f in os.listdir("wallpapers") if f.lower().endswith(exts)) if os.path.isdir("wallpapers") else []
+          urls = [f"https://raw.githubusercontent.com/{repo}/{branch}/wallpapers/{urllib.parse.quote(f)}" for f in files]
+          json.dump(urls, open("wallpapers.json", "w"), indent=2)
+          print(f"{len(urls)} wallpaper(s)")
+          LIST
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -88,4 +99,5 @@ jobs:
           files: |
             HomeBase.apk
             version.json
+            wallpapers.json
           make_latest: true

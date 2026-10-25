@@ -37,6 +37,7 @@ class MainActivity : Activity() {
     private var rows: List<HomeRow> = emptyList()
     private lateinit var prefs: Prefs
     private lateinit var aurora: AuroraView
+    private lateinit var backgrounds: Backgrounds
     private lateinit var greetingView: TextView
     private lateinit var nameView: TextView
     private lateinit var weatherView: TextView
@@ -45,7 +46,7 @@ class MainActivity : Activity() {
     private val minuteTick = object : Runnable {
         override fun run() {
             updateGreeting()
-            aurora.start() // picks up the new time-of-day palette
+            if (aurora.visibility == View.VISIBLE) aurora.start() // picks up the time-of-day palette
             Weather.load(this@MainActivity) { now, city -> showWeather(now, city) }
             ui.postDelayed(this, 60_000)
         }
@@ -69,6 +70,7 @@ class MainActivity : Activity() {
         }
 
         aurora = findViewById(R.id.aurora)
+        backgrounds = Backgrounds(this, aurora, findViewById(R.id.photos))
         greetingView = findViewById(R.id.greeting)
         nameView = findViewById(R.id.name)
         weatherView = findViewById(R.id.weather)
@@ -100,14 +102,14 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refresh()
-        aurora.start()
+        backgrounds.start()
         ui.removeCallbacks(minuteTick)
         ui.post(minuteTick)
     }
 
     override fun onPause() {
         // Nothing animates or refreshes while an app is in front
-        aurora.stop()
+        backgrounds.stop()
         ui.removeCallbacks(minuteTick)
         super.onPause()
     }
@@ -258,29 +260,47 @@ class MainActivity : Activity() {
 
     private fun showLauncherOptions() {
         val takeoverLabel = getString(if (prefs.takeover) R.string.takeover_on else R.string.takeover_off)
-        val options = arrayOf(
-            getString(R.string.your_name) + ": " + prefs.userName,
-            getString(R.string.weather_location) + ": " + prefs.weatherCity,
-            getString(R.string.check_updates),
-            getString(R.string.update_source),
-            takeoverLabel,
-            getString(R.string.reset_home),
-            getString(R.string.about_fmt, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
+        val items = listOf<Pair<String, () -> Unit>>(
+            getString(R.string.your_name) + ": " + prefs.userName to { editName() },
+            getString(R.string.weather_location) + ": " + prefs.weatherCity to { editWeatherCity() },
+            getString(R.string.background) + ": " + getString(prefs.backgroundMode.labelRes) to { chooseBackground() },
+            getString(R.string.slideshow_every, prefs.slideshowMinutes) to { chooseSlideshowInterval() },
+            getString(R.string.check_updates) to { Updater.check(this, silent = false) },
+            getString(R.string.update_source) to { editUpdateUrl() },
+            takeoverLabel to {
+                prefs.takeover = !prefs.takeover
+                toast(getString(if (prefs.takeover) R.string.takeover_on else R.string.takeover_off))
+            },
+            getString(R.string.reset_home) to { prefs.categoryOverrides = emptyMap(); prefs.pinned = AppRepo.defaultPins(this); refresh() },
+            getString(R.string.about_fmt, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE) to {}
         )
-        dialog().setTitle(R.string.launcher_options).setItems(options) { _, which ->
-            when (which) {
-                0 -> editName()
-                1 -> editWeatherCity()
-                2 -> Updater.check(this, silent = false)
-                3 -> editUpdateUrl()
-                4 -> {
-                    prefs.takeover = !prefs.takeover
-                    toast(getString(if (prefs.takeover) R.string.takeover_on else R.string.takeover_off))
-                }
-                5 -> { prefs.pinned = AppRepo.defaultPins(this); refresh() }
-                6 -> {}
-            }
-        }.show()
+        dialog().setTitle(R.string.launcher_options)
+            .setItems(items.map { it.first }.toTypedArray()) { _, which -> items[which].second() }
+            .show()
+    }
+
+    private fun chooseBackground() {
+        val modes = BackgroundMode.values()
+        val names = modes.map { getString(it.labelRes) }.toTypedArray()
+        dialog().setTitle(R.string.background)
+            .setSingleChoiceItems(names, modes.indexOf(prefs.backgroundMode)) { d, which ->
+                prefs.backgroundMode = modes[which]
+                prefs.clearPhotoListTime(modes[which]) // fetch the newest photos now
+                d.dismiss()
+                backgrounds.start()
+                if (modes[which] == BackgroundMode.PHOTOS) toast(getString(R.string.bg_photos_help))
+            }.show()
+    }
+
+    private fun chooseSlideshowInterval() {
+        val choices = intArrayOf(1, 5, 15, 30, 60)
+        val names = choices.map { resources.getQuantityString(R.plurals.minutes, it, it) }.toTypedArray()
+        dialog().setTitle(R.string.slideshow_title)
+            .setSingleChoiceItems(names, choices.indexOf(prefs.slideshowMinutes)) { d, which ->
+                prefs.slideshowMinutes = choices[which]
+                d.dismiss()
+                backgrounds.start()
+            }.show()
     }
 
     private fun editName() {

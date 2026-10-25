@@ -63,4 +63,16 @@
 
     <string name="row_inputs">Inputs</string>
     <string name="tv_aerial">TV</string>
+
+    <string name="background">Background</string>
+    <string name="bg_aurora">Aurora (animated)</string>
+    <string name="bg_bing">Photo of the day (Bing)</string>
+    <string name="bg_photos">Your photos</string>
+    <string name="bg_photos_help">Add photos to the wallpapers folder in your HomeBase GitHub repo. They appear after the next build.</string>
+    <string name="slideshow_every">Change photo every %1$d min</string>
+    <string name="slideshow_title">Change photo every</string>
+    <plurals name="minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
 </resources>
