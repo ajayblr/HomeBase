@@ -4,6 +4,11 @@ HomeBase replaces the Google TV home screen with a plain grid of the apps you ch
 It has no recommendations, ads or background loading, which matters on the 43V6B's 2 GB of RAM.
 
 **What it does**
+- Rows: Continue watching, Streaming, Live TV, Inputs (HDMI/AV + TV), Music & radio, Games, Apps and Tools. Hold OK on an app to move it to another row.
+- Greeting with your name, the time of day and live weather.
+- Backgrounds: animated aurora that follows the time of day, Bing photo of the day, or your own photos from the `wallpapers/` folder.
+- Sleep timer and Screen off, both in the Tools row. These need the helper service; see below.
+
 - A clock and date, with a row of your pinned apps, using each app's TV banner.
 - **All apps**: every installed app. Hold OK on an app to pin it to Home.
 - On Home, hold OK (or press Menu) on a tile to move it left or right, remove it, open App info, or uninstall it.
@@ -90,5 +95,12 @@ adb shell cmd package install-existing <package>                    # bring it b
 ```
 Leave anything with `settings`, `input`, `tv.provider`, `framework`, `systemui`, `setupwraith` or `launcherx` in its name alone. HomeBase relies on the stock launcher still existing so it can take over from it.
 
-## 6. Going back to the stock home screen
+## 6. Turning on the helper service (for Sleep timer / Screen off)
+Run this once from your PC:
+```powershell
+adb shell settings put secure enabled_accessibility_services com.homebase.tvlauncher/com.homebase.tvlauncher.HomeWatcherService
+adb shell settings put secure accessibility_enabled 1
+```
+
+## 7. Going back to the stock home screen
 Go to **Launcher options** and switch the Home button to **OFF**. To remove HomeBase completely, run `adb uninstall com.homebase.tvlauncher`.
