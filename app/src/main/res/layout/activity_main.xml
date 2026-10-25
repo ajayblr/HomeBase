@@ -102,32 +102,27 @@
             </LinearLayout>
         </LinearLayout>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:letterSpacing="0.12"
-            android:text="@string/home"
-            android:textAllCaps="true"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
-
-        <GridView
-            android:id="@+id/grid"
+        <ScrollView
+            android:id="@+id/rows_scroll"
             android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:layout_marginTop="12dp"
             android:layout_weight="1"
             android:clipChildren="false"
             android:clipToPadding="false"
-            android:drawSelectorOnTop="true"
-            android:horizontalSpacing="20dp"
-            android:listSelector="@drawable/tile_selector"
-            android:numColumns="5"
-            android:paddingTop="16dp"
-            android:paddingBottom="8dp"
-            android:scrollbars="none"
-            android:stretchMode="columnWidth"
-            android:verticalSpacing="24dp" />
+            android:fadingEdgeLength="32dp"
+            android:requiresFadingEdge="vertical"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/rows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="vertical"
+                android:paddingBottom="24dp" />
+        </ScrollView>
 
         <TextView
             android:layout_width="wrap_content"

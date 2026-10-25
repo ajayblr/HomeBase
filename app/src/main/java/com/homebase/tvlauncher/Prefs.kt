@@ -54,6 +54,31 @@ class Prefs(ctx: Context) {
         get() = sp.getLong("weather_fetched_at", 0L)
         set(v) = sp.edit().putLong("weather_fetched_at", v).apply()
 
+    /** Apps the user moved to a different row: package -> category. */
+    var categoryOverrides: Map<String, Category>
+        get() = (sp.getString("cat_overrides", "") ?: "").split(',')
+            .mapNotNull { e ->
+                val kv = e.split('=')
+                if (kv.size != 2) null
+                else runCatching { kv[0] to Category.valueOf(kv[1]) }.getOrNull()
+            }.toMap()
+        set(v) = sp.edit().putString("cat_overrides", v.entries.joinToString(",") { "${it.key}=${it.value.name}" }).apply()
+
+    fun setCategory(pkg: String, cat: Category) {
+        categoryOverrides = categoryOverrides + (pkg to cat)
+    }
+
+    /** Swap two pinned apps' positions (used to move an app within its row). */
+    fun swap(a: String, b: String) {
+        val list = pinned.toMutableList()
+        val i = list.indexOf(a)
+        val j = list.indexOf(b)
+        if (i < 0 || j < 0) return
+        list[i] = b
+        list[j] = a
+        pinned = list
+    }
+
     fun pin(pkg: String) {
         if (pkg !in pinned) pinned = pinned + pkg
     }

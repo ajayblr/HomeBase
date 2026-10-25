@@ -51,4 +51,13 @@
     <string name="weather_location_help">Type a city or town, e.g. Dublin, Cork, Galway.</string>
     <string name="weather_not_found">Couldn\'t find \"%1$s\"</string>
     <string name="weather_set">Weather now shows %1$s</string>
+
+    <string name="row_streaming">Streaming</string>
+    <string name="row_live">Live TV</string>
+    <string name="row_music">Music &amp; radio</string>
+    <string name="row_games">Games</string>
+    <string name="row_apps">Apps</string>
+    <string name="row_tools">Tools</string>
+    <string name="move_to_row">Move to another row…</string>
+    <string name="moved_to">Moved to %1$s</string>
 </resources>

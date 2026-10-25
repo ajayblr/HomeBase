@@ -16,7 +16,7 @@ import kotlin.concurrent.thread
 import android.provider.Settings
 import android.view.KeyEvent
 import android.widget.EditText
-import android.widget.GridView
+import android.widget.LinearLayout
 import android.widget.Toast
 
 class MainActivity : Activity() {
@@ -31,8 +31,8 @@ class MainActivity : Activity() {
         private const val ACTION_LAUNCHER = "launcher"
     }
 
-    private lateinit var grid: GridView
-    private lateinit var adapter: TileAdapter
+    private lateinit var homeRows: HomeRows
+    private var rows: List<HomeRow> = emptyList()
     private lateinit var prefs: Prefs
     private lateinit var aurora: AuroraView
     private lateinit var greetingView: TextView
@@ -51,7 +51,7 @@ class MainActivity : Activity() {
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            adapter.clearCache()
+            homeRows.clearCache()
             refresh()
         }
     }
@@ -71,12 +71,13 @@ class MainActivity : Activity() {
         nameView = findViewById(R.id.name)
         weatherView = findViewById(R.id.weather)
 
-        grid = findViewById(R.id.grid)
-        adapter = TileAdapter(this, TileAdapter.tileHeight(this, COLUMNS, SIDE_PADDING_DP, SPACING_DP))
-        grid.adapter = adapter
-        grid.onItemSelectedListener = FocusZoom()
-        grid.setOnItemClickListener { _, _, pos, _ -> onTileClick(adapter.getItem(pos)) }
-        grid.setOnItemLongClickListener { _, _, pos, _ -> showTileMenu(pos); true }
+        homeRows = HomeRows(
+            this,
+            findViewById(R.id.rows),
+            TileAdapter.tileHeight(this, COLUMNS, SIDE_PADDING_DP, SPACING_DP),
+            onClick = { _, tile -> onTileClick(tile) },
+            onMenu = { row, tile -> showTileMenu(row, tile) }
+        )
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
@@ -91,7 +92,6 @@ class MainActivity : Activity() {
         }
 
         refresh()
-        grid.requestFocus()
         Updater.maybeAutoCheck(this)
     }
 
@@ -136,9 +136,9 @@ class MainActivity : Activity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         // Home pressed while already on HomeBase: jump back to the first tile
-        if (::grid.isInitialized) {
-            grid.setSelection(0)
-            grid.requestFocus()
+        if (::homeRows.isInitialized) {
+            findViewById<View>(R.id.rows_scroll).scrollTo(0, 0)
+            homeRows.focusFirst()
         }
     }
 
@@ -154,24 +154,39 @@ class MainActivity : Activity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_MENU) {
-            val pos = grid.selectedItemPosition
-            if (pos >= 0) showTileMenu(pos)
+            homeRows.focused(rows)?.let { (row, tile) -> showTileMenu(row, tile) }
             return true
         }
         return super.onKeyDown(keyCode, event)
     }
 
     private fun refresh() {
-        val installed = AppRepo.allApps(this).associateBy { it.pkg }
-        val tiles = mutableListOf<Tile>()
-        prefs.pinned.mapNotNull { installed[it] }.forEach { tiles += Tile.App(it) }
-        tiles += Tile.Action(ACTION_ALL_APPS, getString(R.string.all_apps), R.drawable.ic_apps)
-        tiles += Tile.Action(ACTION_SETTINGS, getString(R.string.tv_settings), R.drawable.ic_settings)
-        tiles += Tile.Action(ACTION_LAUNCHER, getString(R.string.launcher_options), R.drawable.ic_tune)
-        val keep = grid.selectedItemPosition
-        adapter.submit(tiles)
-        if (keep in tiles.indices) grid.setSelection(keep)
+        rows = buildRows()
+        homeRows.show(rows)
     }
+
+    private fun buildRows(): List<HomeRow> {
+        val installed = AppRepo.allApps(this).associateBy { it.pkg }
+        val overrides = prefs.categoryOverrides
+        val pinnedApps = prefs.pinned.mapNotNull { installed[it] }
+        val byCat = pinnedApps.groupBy { Categories.of(this, it.pkg, overrides) }
+
+        val result = mutableListOf<HomeRow>()
+        for (cat in Category.values()) {
+            val apps = byCat[cat].orEmpty()
+            if (apps.isNotEmpty()) {
+                result += HomeRow("cat:" + cat.name, getString(cat.titleRes), apps.map { Tile.App(it) })
+            }
+        }
+        result += HomeRow("tools", getString(R.string.row_tools), toolTiles())
+        return result
+    }
+
+    private fun toolTiles(): List<Tile> = listOf(
+        Tile.Action(ACTION_ALL_APPS, getString(R.string.all_apps), R.drawable.ic_apps),
+        Tile.Action(ACTION_SETTINGS, getString(R.string.tv_settings), R.drawable.ic_settings),
+        Tile.Action(ACTION_LAUNCHER, getString(R.string.launcher_options), R.drawable.ic_tune)
+    )
 
     private fun onTileClick(tile: Tile) {
         when (tile) {
@@ -184,29 +199,45 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun showTileMenu(pos: Int) {
-        val tile = adapter.getItem(pos)
+    private fun showTileMenu(row: HomeRow, tile: Tile) {
         if (tile !is Tile.App) {
             onTileClick(tile)
             return
         }
         val pkg = tile.entry.pkg
+        val rowPkgs = row.tiles.filterIsInstance<Tile.App>().map { it.entry.pkg }
+        val idx = rowPkgs.indexOf(pkg)
         val options = arrayOf(
             getString(R.string.move_left),
             getString(R.string.move_right),
+            getString(R.string.move_to_row),
             getString(R.string.unpin),
             getString(R.string.app_info),
             getString(R.string.uninstall)
         )
         dialog().setTitle(tile.entry.label).setItems(options) { _, which ->
             when (which) {
-                0 -> { val to = prefs.move(pkg, -1); refresh(); grid.setSelection(to) }
-                1 -> { val to = prefs.move(pkg, +1); refresh(); grid.setSelection(to) }
-                2 -> { prefs.unpin(pkg); refresh() }
-                3 -> AppRepo.openAppInfo(this, pkg)
-                4 -> AppRepo.uninstall(this, pkg)
+                0 -> if (idx > 0) { prefs.swap(pkg, rowPkgs[idx - 1]); refresh() }
+                1 -> if (idx in 0 until rowPkgs.size - 1) { prefs.swap(pkg, rowPkgs[idx + 1]); refresh() }
+                2 -> chooseRow(pkg)
+                3 -> { prefs.unpin(pkg); refresh() }
+                4 -> AppRepo.openAppInfo(this, pkg)
+                5 -> AppRepo.uninstall(this, pkg)
             }
         }.show()
+    }
+
+    private fun chooseRow(pkg: String) {
+        val cats = Category.values()
+        val names = cats.map { getString(it.titleRes) }.toTypedArray()
+        val current = Categories.of(this, pkg, prefs.categoryOverrides)
+        dialog().setTitle(R.string.move_to_row)
+            .setSingleChoiceItems(names, cats.indexOf(current)) { d, which ->
+                prefs.setCategory(pkg, cats[which])
+                d.dismiss()
+                refresh()
+                toast(getString(R.string.moved_to, names[which]))
+            }.show()
     }
 
     private fun showLauncherOptions() {

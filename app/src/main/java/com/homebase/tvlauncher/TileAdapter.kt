@@ -11,11 +11,10 @@ import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.TextView
 
-/** Grid adapter for both the home screen and the All apps screen. */
+/** Grid adapter for the All apps screen. */
 class TileAdapter(private val ctx: Context, private val tileHeight: Int) : BaseAdapter() {
 
     private var items: List<Tile> = emptyList()
-    // Per-adapter cache so each drawable instance belongs to one screen only
     private val visuals = HashMap<String, Pair<Drawable, Boolean>>()
 
     fun submit(list: List<Tile>) {
@@ -34,41 +33,9 @@ class TileAdapter(private val ctx: Context, private val tileHeight: Int) : BaseA
             it.layoutParams = AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, tileHeight)
             it.clipToOutline = true
         }
-        val image = v.findViewById<ImageView>(R.id.tile_image)
-        val label = v.findViewById<TextView>(R.id.tile_label)
-        val badge = v.findViewById<TextView>(R.id.tile_badge)
-
-        // Recycled views may still be zoomed from a previous selection
         v.scaleX = 1f
         v.scaleY = 1f
-
-        when (val t = items[position]) {
-            is Tile.App -> {
-                val (drawable, isBanner) = visuals.getOrPut(t.entry.pkg) { AppRepo.visual(ctx, t.entry) }
-                image.setImageDrawable(drawable)
-                label.text = t.entry.label
-                if (isBanner) {
-                    image.scaleType = ImageView.ScaleType.CENTER_CROP
-                    image.setPadding(0, 0, 0, 0)
-                    label.visibility = View.GONE
-                } else {
-                    image.scaleType = ImageView.ScaleType.FIT_CENTER
-                    val pad = tileHeight / 5
-                    image.setPadding(pad, pad / 2, pad, pad + pad / 2)
-                    label.visibility = View.VISIBLE
-                }
-                badge.visibility = if (t.pinned) View.VISIBLE else View.GONE
-            }
-            is Tile.Action -> {
-                image.setImageResource(t.iconRes)
-                image.scaleType = ImageView.ScaleType.FIT_CENTER
-                val pad = tileHeight / 4
-                image.setPadding(pad, pad / 2, pad, pad + pad / 3)
-                label.text = t.label
-                label.visibility = View.VISIBLE
-                badge.visibility = View.GONE
-            }
-        }
+        bind(ctx, v, items[position], tileHeight, visuals)
         return v
     }
 
@@ -79,10 +46,50 @@ class TileAdapter(private val ctx: Context, private val tileHeight: Int) : BaseA
             val usable = dm.widthPixels - (2 * sidePaddingDp + (columns - 1) * spacingDp) * dm.density
             return (usable / columns * 9f / 16f).toInt()
         }
+
+        /** Fills a tile.xml view for any kind of tile. Shared by the home rows and All apps. */
+        fun bind(
+            ctx: Context,
+            v: View,
+            tile: Tile,
+            tileHeight: Int,
+            cache: MutableMap<String, Pair<Drawable, Boolean>>
+        ) {
+            val image = v.findViewById<ImageView>(R.id.tile_image)
+            val label = v.findViewById<TextView>(R.id.tile_label)
+            val badge = v.findViewById<TextView>(R.id.tile_badge)
+            when (tile) {
+                is Tile.App -> {
+                    val (drawable, isBanner) = cache.getOrPut(tile.entry.pkg) { AppRepo.visual(ctx, tile.entry) }
+                    image.setImageDrawable(drawable)
+                    label.text = tile.entry.label
+                    if (isBanner) {
+                        image.scaleType = ImageView.ScaleType.CENTER_CROP
+                        image.setPadding(0, 0, 0, 0)
+                        label.visibility = View.GONE
+                    } else {
+                        image.scaleType = ImageView.ScaleType.FIT_CENTER
+                        val pad = tileHeight / 5
+                        image.setPadding(pad, pad / 2, pad, pad + pad / 2)
+                        label.visibility = View.VISIBLE
+                    }
+                    badge.visibility = if (tile.pinned) View.VISIBLE else View.GONE
+                }
+                is Tile.Action -> {
+                    image.setImageResource(tile.iconRes)
+                    image.scaleType = ImageView.ScaleType.FIT_CENTER
+                    val pad = tileHeight / 4
+                    image.setPadding(pad, pad / 2, pad, pad + pad / 3)
+                    label.text = tile.label
+                    label.visibility = View.VISIBLE
+                    badge.visibility = View.GONE
+                }
+            }
+        }
     }
 }
 
-/** Gently enlarges the selected tile, like the stock home screen does. */
+/** Gently enlarges the selected tile in the All apps grid. */
 class FocusZoom : AdapterView.OnItemSelectedListener {
     private var current: View? = null
 
