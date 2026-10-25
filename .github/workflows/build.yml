@@ -14,7 +14,8 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Pinned: this image ships with the Android SDK already installed
+    runs-on: ubuntu-24.04
     env:
       VERSION_CODE: ${{ github.run_number }}
       UPDATE_URL: https://github.com/${{ github.repository }}/releases/latest/download/version.json
@@ -29,7 +30,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - name: Check Android SDK
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          if [ ! -d "$SDK" ]; then echo "::error::Android SDK not found on runner at $SDK"; exit 1; fi
+          echo "sdk.dir=$SDK" > local.properties
+          echo "Using Android SDK at $SDK"
 
       - name: Restore signing key
         env:
