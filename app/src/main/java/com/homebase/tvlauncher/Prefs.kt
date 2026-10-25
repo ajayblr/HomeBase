@@ -98,6 +98,11 @@ class Prefs(ctx: Context) {
 
     fun clearPhotoListTime(mode: BackgroundMode) = sp.edit().remove("photos_at_" + mode.name).apply()
 
+    /** When the sleep timer fires (epoch ms), or 0 when off. */
+    var sleepAt: Long
+        get() = sp.getLong("sleep_at", 0L)
+        set(v) = sp.edit().putLong("sleep_at", v).apply()
+
     fun pin(pkg: String) {
         if (pkg !in pinned) pinned = pinned + pkg
     }

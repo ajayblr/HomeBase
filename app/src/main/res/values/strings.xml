@@ -75,4 +75,16 @@
         <item quantity="one">%d minute</item>
         <item quantity="other">%d minutes</item>
     </plurals>
+
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="sleep_timer_on">Sleep timer: on</string>
+    <string name="screen_off">Screen off</string>
+    <string name="sleep_off">Off</string>
+    <string name="sleep_set">TV will sleep in %1$s</string>
+    <string name="sleep_cancelled">Sleep timer cancelled</string>
+    <string name="sleep_status">💤  Sleeping in %1$d min</string>
+    <string name="sleep_warning">TV will sleep in 1 minute. Open Sleep timer and choose Off to cancel.</string>
+    <string name="service_needed_title">One-time setup needed</string>
+    <string name="service_needed_msg">Turning the TV off needs the HomeBase helper service. Run this once from your PC:\n\nadb shell settings put secure enabled_accessibility_services %1$s/%1$s.HomeWatcherService\n\nadb shell settings put secure accessibility_enabled 1\n\nOr turn on \"HomeBase home button\" in Accessibility settings.</string>
+    <string name="open_accessibility">Accessibility settings</string>
 </resources>

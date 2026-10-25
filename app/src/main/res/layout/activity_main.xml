@@ -105,6 +105,20 @@
                     android:textColor="@color/text_primary"
                     android:textSize="16sp"
                     android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/sleep_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/pill_bg"
+                    android:paddingStart="14dp"
+                    android:paddingTop="5dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="5dp"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
 

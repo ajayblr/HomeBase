@@ -30,6 +30,8 @@ class MainActivity : Activity() {
         private const val ACTION_SETTINGS = "settings"
         private const val ACTION_LAUNCHER = "launcher"
         private const val ACTION_LIVE_TV = "live_tv"
+        private const val ACTION_SLEEP = "sleep"
+        private const val ACTION_SCREEN_OFF = "screen_off"
         private const val INPUT_PREFIX = "input:"
     }
 
@@ -41,11 +43,13 @@ class MainActivity : Activity() {
     private lateinit var greetingView: TextView
     private lateinit var nameView: TextView
     private lateinit var weatherView: TextView
+    private lateinit var sleepView: TextView
 
     private val ui = Handler(Looper.getMainLooper())
     private val minuteTick = object : Runnable {
         override fun run() {
             updateGreeting()
+            updateSleepStatus()
             if (aurora.visibility == View.VISIBLE) aurora.start() // picks up the time-of-day palette
             Weather.load(this@MainActivity) { now, city -> showWeather(now, city) }
             ui.postDelayed(this, 60_000)
@@ -74,6 +78,7 @@ class MainActivity : Activity() {
         greetingView = findViewById(R.id.greeting)
         nameView = findViewById(R.id.name)
         weatherView = findViewById(R.id.weather)
+        sleepView = findViewById(R.id.sleep_status)
 
         homeRows = HomeRows(
             this,
@@ -199,6 +204,12 @@ class MainActivity : Activity() {
 
     private fun toolTiles(): List<Tile> = listOf(
         Tile.Action(ACTION_ALL_APPS, getString(R.string.all_apps), R.drawable.ic_apps),
+        Tile.Action(
+            ACTION_SLEEP,
+            getString(if (prefs.sleepAt > System.currentTimeMillis()) R.string.sleep_timer_on else R.string.sleep_timer),
+            R.drawable.ic_timer
+        ),
+        Tile.Action(ACTION_SCREEN_OFF, getString(R.string.screen_off), R.drawable.ic_power),
         Tile.Action(ACTION_SETTINGS, getString(R.string.tv_settings), R.drawable.ic_settings),
         Tile.Action(ACTION_LAUNCHER, getString(R.string.launcher_options), R.drawable.ic_tune)
     )
@@ -209,6 +220,8 @@ class MainActivity : Activity() {
             is Tile.Action -> if (tile.id.startsWith(INPUT_PREFIX)) {
                 if (!Inputs.open(this, tile.id.removePrefix(INPUT_PREFIX))) toast(getString(R.string.cannot_open))
             } else when (tile.id) {
+                ACTION_SLEEP -> showSleepTimer()
+                ACTION_SCREEN_OFF -> withService { it.sleepNow() }
                 ACTION_LIVE_TV -> if (!AppRepo.launch(this, "com.tcl.tv")) toast(getString(R.string.cannot_open))
                 ACTION_ALL_APPS -> startActivity(Intent(this, AllAppsActivity::class.java))
                 ACTION_SETTINGS -> AppRepo.safeStart(this, Intent(Settings.ACTION_SETTINGS))
@@ -276,6 +289,56 @@ class MainActivity : Activity() {
         )
         dialog().setTitle(R.string.launcher_options)
             .setItems(items.map { it.first }.toTypedArray()) { _, which -> items[which].second() }
+            .show()
+    }
+
+    private fun updateSleepStatus() {
+        val left = prefs.sleepAt - System.currentTimeMillis()
+        if (prefs.sleepAt > 0 && left > 0 && HomeWatcherService.isRunning) {
+            val mins = ((left + 59_999) / 60_000).toInt()
+            sleepView.text = getString(R.string.sleep_status, mins)
+            sleepView.visibility = View.VISIBLE
+        } else {
+            sleepView.visibility = View.GONE
+        }
+    }
+
+    private fun showSleepTimer() {
+        val choices = intArrayOf(0, 15, 30, 45, 60, 90, 120)
+        val names = choices.map {
+            if (it == 0) getString(R.string.sleep_off) else resources.getQuantityString(R.plurals.minutes, it, it)
+        }.toTypedArray()
+        dialog().setTitle(R.string.sleep_timer)
+            .setItems(names) { _, which ->
+                withService { svc ->
+                    if (choices[which] == 0) {
+                        svc.cancelSleepTimer()
+                        toast(getString(R.string.sleep_cancelled))
+                    } else {
+                        svc.startSleepTimer(choices[which])
+                        toast(getString(R.string.sleep_set, names[which]))
+                    }
+                    updateSleepStatus()
+                    refresh()
+                }
+            }.show()
+    }
+
+    /** Runs [block] with the helper service, or explains the one-time setup if it's off. */
+    private fun withService(block: (HomeWatcherService) -> Unit) {
+        val svc = HomeWatcherService.instance
+        if (svc != null) {
+            block(svc)
+            return
+        }
+        dialog().setTitle(R.string.service_needed_title)
+            .setMessage(getString(R.string.service_needed_msg, packageName))
+            .setPositiveButton(R.string.open_accessibility) { _, _ ->
+                if (!AppRepo.safeStart(this, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))) {
+                    toast(getString(R.string.cannot_open))
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
