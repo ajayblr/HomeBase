@@ -87,4 +87,8 @@
     <string name="service_needed_title">One-time setup needed</string>
     <string name="service_needed_msg">Turning the TV off needs the HomeBase helper service. Run this once from your PC:\n\nadb shell settings put secure enabled_accessibility_services %1$s/%1$s.HomeWatcherService\n\nadb shell settings put secure accessibility_enabled 1\n\nOr turn on \"HomeBase home button\" in Accessibility settings.</string>
     <string name="open_accessibility">Accessibility settings</string>
+
+    <string name="row_recent">Continue watching</string>
+    <string name="remove_recent">Remove from Continue watching</string>
+    <string name="clear_recents">Clear Continue watching</string>
 </resources>

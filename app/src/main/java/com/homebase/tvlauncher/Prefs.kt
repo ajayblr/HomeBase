@@ -103,6 +103,19 @@ class Prefs(ctx: Context) {
         get() = sp.getLong("sleep_at", 0L)
         set(v) = sp.edit().putLong("sleep_at", v).apply()
 
+    /** Recently opened apps, newest first. */
+    var recents: List<String>
+        get() = (sp.getString("recents", "") ?: "").split(',').filter { it.isNotBlank() }
+        set(v) = sp.edit().putString("recents", v.joinToString(",")).apply()
+
+    fun addRecent(pkg: String) {
+        recents = (listOf(pkg) + (recents - pkg)).take(10)
+    }
+
+    fun removeRecent(pkg: String) {
+        recents = recents - pkg
+    }
+
     fun pin(pkg: String) {
         if (pkg !in pinned) pinned = pinned + pkg
     }

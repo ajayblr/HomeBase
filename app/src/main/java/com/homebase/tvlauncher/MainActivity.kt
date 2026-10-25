@@ -31,6 +31,8 @@ class MainActivity : Activity() {
         private const val ACTION_LAUNCHER = "launcher"
         private const val ACTION_LIVE_TV = "live_tv"
         private const val ACTION_SLEEP = "sleep"
+        private const val ROW_RECENT = "recent"
+        private const val MAX_RECENTS = 6
         private const val ACTION_SCREEN_OFF = "screen_off"
         private const val INPUT_PREFIX = "input:"
     }
@@ -181,6 +183,11 @@ class MainActivity : Activity() {
         val byCat = pinnedApps.groupBy { Categories.of(this, it.pkg, overrides) }
 
         val result = mutableListOf<HomeRow>()
+        // Apps opened recently; opening one picks up where you left off
+        val recent = prefs.recents.mapNotNull { installed[it] }.take(MAX_RECENTS)
+        if (recent.isNotEmpty()) {
+            result += HomeRow(ROW_RECENT, getString(R.string.row_recent), recent.map { Tile.App(it) })
+        }
         for (cat in Category.values()) {
             val apps = byCat[cat].orEmpty()
             if (apps.isNotEmpty()) {
@@ -236,6 +243,22 @@ class MainActivity : Activity() {
             return
         }
         val pkg = tile.entry.pkg
+        if (row.key == ROW_RECENT) {
+            val pinned = pkg in prefs.pinned
+            val items = listOf<Pair<String, () -> Unit>>(
+                getString(R.string.remove_recent) to { prefs.removeRecent(pkg); refresh() },
+                getString(if (pinned) R.string.unpin else R.string.pin) to {
+                    if (pinned) prefs.unpin(pkg) else prefs.pin(pkg)
+                    refresh()
+                },
+                getString(R.string.clear_recents) to { prefs.recents = emptyList(); refresh() },
+                getString(R.string.app_info) to { AppRepo.openAppInfo(this, pkg) }
+            )
+            dialog().setTitle(tile.entry.label)
+                .setItems(items.map { it.first }.toTypedArray()) { _, which -> items[which].second() }
+                .show()
+            return
+        }
         val rowPkgs = row.tiles.filterIsInstance<Tile.App>().map { it.entry.pkg }
         val idx = rowPkgs.indexOf(pkg)
         val options = arrayOf(

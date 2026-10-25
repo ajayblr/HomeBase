@@ -64,7 +64,9 @@ object AppRepo {
             ?: return false
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return try {
-            ctx.startActivity(intent); true
+            ctx.startActivity(intent)
+            Prefs(ctx).addRecent(pkg)
+            true
         } catch (e: Exception) {
             false
         }
