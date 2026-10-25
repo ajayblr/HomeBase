@@ -3,7 +3,7 @@
     <color name="text_primary">#FFFFFFFF</color>
     <color name="text_secondary">#B3FFFFFF</color>
     <color name="text_hint">#80FFFFFF</color>
-    <color name="tile">#FF1F2A44</color>
+    <color name="tile">#59101828</color>
     <color name="accent">#FF38BDF8</color>
     <color name="window_bg">#FF0A0F1A</color>
 </resources>

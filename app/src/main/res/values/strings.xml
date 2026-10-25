@@ -41,4 +41,14 @@
 
     <string name="takeover_label">HomeBase home button</string>
     <string name="takeover_desc">Opens HomeBase whenever the built-in Google TV home screen appears, so the Home button and startup land on HomeBase. It only watches the stock home screen and reads nothing on screen.</string>
+
+    <string name="good_morning">Good morning</string>
+    <string name="good_afternoon">Good afternoon</string>
+    <string name="good_evening">Good evening</string>
+    <string name="good_night">Good night</string>
+    <string name="your_name">Your name</string>
+    <string name="weather_location">Weather location</string>
+    <string name="weather_location_help">Type a city or town, e.g. Dublin, Cork, Galway.</string>
+    <string name="weather_not_found">Couldn\'t find \"%1$s\"</string>
+    <string name="weather_set">Weather now shows %1$s</string>
 </resources>

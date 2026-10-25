@@ -38,6 +38,12 @@ class AllAppsActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refresh()
+        findViewById<AuroraView>(R.id.aurora).start()
+    }
+
+    override fun onPause() {
+        findViewById<AuroraView>(R.id.aurora).stop()
+        super.onPause()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {

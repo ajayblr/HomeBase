@@ -8,6 +8,11 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.View
+import android.widget.TextView
+import kotlin.concurrent.thread
 import android.provider.Settings
 import android.view.KeyEvent
 import android.widget.EditText
@@ -29,6 +34,20 @@ class MainActivity : Activity() {
     private lateinit var grid: GridView
     private lateinit var adapter: TileAdapter
     private lateinit var prefs: Prefs
+    private lateinit var aurora: AuroraView
+    private lateinit var greetingView: TextView
+    private lateinit var nameView: TextView
+    private lateinit var weatherView: TextView
+
+    private val ui = Handler(Looper.getMainLooper())
+    private val minuteTick = object : Runnable {
+        override fun run() {
+            updateGreeting()
+            aurora.start() // picks up the new time-of-day palette
+            Weather.load(this@MainActivity) { now, city -> showWeather(now, city) }
+            ui.postDelayed(this, 60_000)
+        }
+    }
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -46,6 +65,11 @@ class MainActivity : Activity() {
             prefs.pinned = AppRepo.defaultPins(this)
             prefs.firstRun = false
         }
+
+        aurora = findViewById(R.id.aurora)
+        greetingView = findViewById(R.id.greeting)
+        nameView = findViewById(R.id.name)
+        weatherView = findViewById(R.id.weather)
 
         grid = findViewById(R.id.grid)
         adapter = TileAdapter(this, TileAdapter.tileHeight(this, COLUMNS, SIDE_PADDING_DP, SPACING_DP))
@@ -74,6 +98,39 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refresh()
+        aurora.start()
+        ui.removeCallbacks(minuteTick)
+        ui.post(minuteTick)
+    }
+
+    override fun onPause() {
+        // Nothing animates or refreshes while an app is in front
+        aurora.stop()
+        ui.removeCallbacks(minuteTick)
+        super.onPause()
+    }
+
+    private fun updateGreeting() {
+        val res = when (AuroraView.currentPhase()) {
+            AuroraView.Phase.MORNING -> R.string.good_morning
+            AuroraView.Phase.AFTERNOON -> R.string.good_afternoon
+            AuroraView.Phase.EVENING -> R.string.good_evening
+            AuroraView.Phase.NIGHT -> R.string.good_night
+        }
+        greetingView.setText(res)
+        val name = prefs.userName
+        nameView.text = name
+        nameView.visibility = if (name.isBlank()) View.GONE else View.VISIBLE
+    }
+
+    private fun showWeather(now: Weather.Now?, city: String) {
+        if (now == null) {
+            weatherView.visibility = View.GONE
+            return
+        }
+        val (icon, text) = Weather.describe(now)
+        weatherView.text = listOf("$icon  ${now.tempC}°", text, city).filter { it.isNotBlank() }.joinToString("  ·  ")
+        weatherView.visibility = View.VISIBLE
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -155,6 +212,8 @@ class MainActivity : Activity() {
     private fun showLauncherOptions() {
         val takeoverLabel = getString(if (prefs.takeover) R.string.takeover_on else R.string.takeover_off)
         val options = arrayOf(
+            getString(R.string.your_name) + ": " + prefs.userName,
+            getString(R.string.weather_location) + ": " + prefs.weatherCity,
             getString(R.string.check_updates),
             getString(R.string.update_source),
             takeoverLabel,
@@ -163,16 +222,64 @@ class MainActivity : Activity() {
         )
         dialog().setTitle(R.string.launcher_options).setItems(options) { _, which ->
             when (which) {
-                0 -> Updater.check(this, silent = false)
-                1 -> editUpdateUrl()
-                2 -> {
+                0 -> editName()
+                1 -> editWeatherCity()
+                2 -> Updater.check(this, silent = false)
+                3 -> editUpdateUrl()
+                4 -> {
                     prefs.takeover = !prefs.takeover
                     toast(getString(if (prefs.takeover) R.string.takeover_on else R.string.takeover_off))
                 }
-                3 -> { prefs.pinned = AppRepo.defaultPins(this); refresh() }
-                4 -> {}
+                5 -> { prefs.pinned = AppRepo.defaultPins(this); refresh() }
+                6 -> {}
             }
         }.show()
+    }
+
+    private fun editName() {
+        val input = EditText(this).apply {
+            setText(prefs.userName)
+            setSingleLine()
+        }
+        dialog().setTitle(R.string.your_name)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                prefs.userName = input.text.toString()
+                updateGreeting()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun editWeatherCity() {
+        val input = EditText(this).apply {
+            setText(prefs.weatherCity)
+            setSingleLine()
+        }
+        dialog().setTitle(R.string.weather_location)
+            .setMessage(R.string.weather_location_help)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val query = input.text.toString()
+                if (query.isBlank()) return@setPositiveButton
+                thread(name = "geocode") {
+                    val hit = runCatching { Weather.geocode(query) }.getOrNull()
+                    runOnUiThread {
+                        if (hit == null) {
+                            toast(getString(R.string.weather_not_found, query))
+                        } else {
+                            prefs.weatherCity = hit.first
+                            prefs.weatherLat = hit.second
+                            prefs.weatherLon = hit.third
+                            prefs.weatherCache = ""
+                            toast(getString(R.string.weather_set, hit.first))
+                            Weather.load(this, force = true) { now, city -> showWeather(now, city) }
+                        }
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun editUpdateUrl() {

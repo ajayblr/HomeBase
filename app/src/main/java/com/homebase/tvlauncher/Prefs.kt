@@ -29,6 +29,31 @@ class Prefs(ctx: Context) {
         get() = sp.getLong("last_update_check", 0L)
         set(v) = sp.edit().putLong("last_update_check", v).apply()
 
+    /** Name shown in the greeting. */
+    var userName: String
+        get() = sp.getString("user_name", null) ?: "Ajay"
+        set(v) = sp.edit().putString("user_name", v.trim()).apply()
+
+    var weatherCity: String
+        get() = sp.getString("weather_city", null) ?: "Dublin"
+        set(v) = sp.edit().putString("weather_city", v).apply()
+
+    var weatherLat: Double
+        get() = sp.getString("weather_lat", null)?.toDoubleOrNull() ?: 53.3498
+        set(v) = sp.edit().putString("weather_lat", v.toString()).apply()
+
+    var weatherLon: Double
+        get() = sp.getString("weather_lon", null)?.toDoubleOrNull() ?: -6.2603
+        set(v) = sp.edit().putString("weather_lon", v.toString()).apply()
+
+    var weatherCache: String
+        get() = sp.getString("weather_cache", "") ?: ""
+        set(v) = sp.edit().putString("weather_cache", v).apply()
+
+    var weatherFetchedAt: Long
+        get() = sp.getLong("weather_fetched_at", 0L)
+        set(v) = sp.edit().putLong("weather_fetched_at", v).apply()
+
     fun pin(pkg: String) {
         if (pkg !in pinned) pinned = pinned + pkg
     }
