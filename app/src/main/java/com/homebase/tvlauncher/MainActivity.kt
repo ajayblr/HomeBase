@@ -29,6 +29,8 @@ class MainActivity : Activity() {
         private const val ACTION_ALL_APPS = "all_apps"
         private const val ACTION_SETTINGS = "settings"
         private const val ACTION_LAUNCHER = "launcher"
+        private const val ACTION_LIVE_TV = "live_tv"
+        private const val INPUT_PREFIX = "input:"
     }
 
     private lateinit var homeRows: HomeRows
@@ -178,6 +180,17 @@ class MainActivity : Activity() {
                 result += HomeRow("cat:" + cat.name, getString(cat.titleRes), apps.map { Tile.App(it) })
             }
         }
+        val inputTiles = mutableListOf<Tile>()
+        Inputs.list(this).forEach { inputTiles += Tile.Action(INPUT_PREFIX + it.id, it.label, R.drawable.ic_input) }
+        if (installed.containsKey("com.tcl.tv")) {
+            inputTiles += Tile.Action(ACTION_LIVE_TV, getString(R.string.tv_aerial), R.drawable.ic_tv)
+        }
+        if (inputTiles.isNotEmpty()) {
+            // Inputs go straight after Live TV
+            val at = result.indexOfFirst { it.key == "cat:" + Category.MUSIC.name || it.key == "cat:" + Category.GAMES.name || it.key == "cat:" + Category.APPS.name }
+            val row = HomeRow("inputs", getString(R.string.row_inputs), inputTiles)
+            if (at >= 0) result.add(at, row) else result += row
+        }
         result += HomeRow("tools", getString(R.string.row_tools), toolTiles())
         return result
     }
@@ -191,7 +204,10 @@ class MainActivity : Activity() {
     private fun onTileClick(tile: Tile) {
         when (tile) {
             is Tile.App -> if (!AppRepo.launch(this, tile.entry.pkg)) toast(getString(R.string.cannot_open))
-            is Tile.Action -> when (tile.id) {
+            is Tile.Action -> if (tile.id.startsWith(INPUT_PREFIX)) {
+                if (!Inputs.open(this, tile.id.removePrefix(INPUT_PREFIX))) toast(getString(R.string.cannot_open))
+            } else when (tile.id) {
+                ACTION_LIVE_TV -> if (!AppRepo.launch(this, "com.tcl.tv")) toast(getString(R.string.cannot_open))
                 ACTION_ALL_APPS -> startActivity(Intent(this, AllAppsActivity::class.java))
                 ACTION_SETTINGS -> AppRepo.safeStart(this, Intent(Settings.ACTION_SETTINGS))
                 ACTION_LAUNCHER -> showLauncherOptions()

@@ -60,4 +60,7 @@
     <string name="row_tools">Tools</string>
     <string name="move_to_row">Move to another row…</string>
     <string name="moved_to">Moved to %1$s</string>
+
+    <string name="row_inputs">Inputs</string>
+    <string name="tv_aerial">TV</string>
 </resources>
