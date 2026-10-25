@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HomeBase</string>
+    <string name="home">Home</string>
+    <string name="hint_hold">Hold OK on a tile for options</string>
+    <string name="hint_pin">Hold OK to pin an app to Home</string>
+    <string name="all_apps">All apps</string>
+    <string name="all_apps_count">All apps (%1$d)</string>
+    <string name="tv_settings">TV settings</string>
+    <string name="launcher_options">Launcher options</string>
+    <string name="cannot_open">Couldn\'t open that app</string>
+
+    <string name="move_left">Move left</string>
+    <string name="move_right">Move right</string>
+    <string name="pin">Pin to Home</string>
+    <string name="unpin">Remove from Home</string>
+    <string name="app_info">App info</string>
+    <string name="uninstall">Uninstall</string>
+
+    <string name="check_updates">Check for updates</string>
+    <string name="update_source">Update source</string>
+    <string name="update_source_help">Address of the version.json file published with each build. Leave empty to turn off update checks.</string>
+    <string name="takeover_on">Home button opens HomeBase: ON</string>
+    <string name="takeover_off">Home button opens HomeBase: OFF</string>
+    <string name="reset_home">Reset Home to default apps</string>
+    <string name="about_fmt">About: HomeBase %1$s (build %2$d)</string>
+
+    <string name="no_update_source">No update source set. Add one under Launcher options → Update source.</string>
+    <string name="checking_updates">Checking for updates…</string>
+    <string name="update_check_failed">Update check failed: %1$s</string>
+    <string name="up_to_date">HomeBase is up to date (%1$s)</string>
+    <string name="update_available">Update available</string>
+    <string name="update_available_msg">Version %1$s is ready to install. You have %2$s.</string>
+    <string name="install">Install</string>
+    <string name="later">Later</string>
+    <string name="allow_installs">Allow HomeBase to install updates</string>
+    <string name="allow_installs_msg">Android needs your permission once. On the next screen, turn on HomeBase, then come back and choose Check for updates again.</string>
+    <string name="allow_installs_adb">Couldn\'t open that setting. Run the allow-updates command from the README with adb.</string>
+    <string name="downloading">Downloading update…</string>
+    <string name="update_failed">Update failed: %1$s</string>
+
+    <string name="takeover_label">HomeBase home button</string>
+    <string name="takeover_desc">Opens HomeBase whenever the built-in Google TV home screen appears, so the Home button and startup land on HomeBase. It only watches the stock home screen and reads nothing on screen.</string>
+</resources>
