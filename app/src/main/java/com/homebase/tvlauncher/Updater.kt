@@ -61,7 +61,7 @@ object Updater {
                     if (info.code <= BuildConfig.VERSION_CODE) {
                         if (!silent) toast(act, act.getString(R.string.up_to_date, BuildConfig.VERSION_NAME))
                     } else {
-                        AlertDialog.Builder(act, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                        AlertDialog.Builder(act, R.style.HomeBaseDialog)
                             .setTitle(R.string.update_available)
                             .setMessage(act.getString(R.string.update_available_msg, info.name, BuildConfig.VERSION_NAME))
                             .setPositiveButton(R.string.install) { _, _ -> download(act, info) }
@@ -75,7 +75,7 @@ object Updater {
 
     private fun download(act: Activity, info: Info) {
         if (Build.VERSION.SDK_INT >= 26 && !act.packageManager.canRequestPackageInstalls()) {
-            AlertDialog.Builder(act, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            AlertDialog.Builder(act, R.style.HomeBaseDialog)
                 .setTitle(R.string.allow_installs)
                 .setMessage(R.string.allow_installs_msg)
                 .setPositiveButton(android.R.string.ok) { _, _ ->

@@ -10,6 +10,7 @@ import kotlin.concurrent.thread
 
 /** Background styles the user can pick in Launcher options. */
 enum class BackgroundMode(val labelRes: Int) {
+    RAIN(R.string.bg_rain),
     AURORA(R.string.bg_aurora),
     BING(R.string.bg_bing),
     PHOTOS(R.string.bg_photos)
@@ -23,12 +24,19 @@ enum class BackgroundMode(val labelRes: Int) {
 class Backgrounds(
     private val act: Activity,
     private val aurora: AuroraView,
-    private val photos: PhotoWall
+    private val photos: PhotoWall,
+    private val rain: RainView
 ) {
     private val prefs = Prefs(act)
 
     fun start() {
         val mode = prefs.backgroundMode
+        if (mode == BackgroundMode.RAIN) {
+            showRain()
+            return
+        }
+        rain.stop()
+        rain.visibility = View.GONE
         if (mode == BackgroundMode.AURORA) {
             showAurora()
             return
@@ -52,6 +60,16 @@ class Backgrounds(
     fun stop() {
         aurora.stop()
         photos.stop()
+        rain.stop()
+    }
+
+    private fun showRain() {
+        aurora.stop()
+        photos.stop()
+        aurora.visibility = View.GONE
+        photos.visibility = View.GONE
+        rain.visibility = View.VISIBLE
+        rain.start()
     }
 
     private fun showAurora() {

@@ -18,7 +18,7 @@ class AllAppsActivity : Activity() {
     private lateinit var grid: GridView
     private lateinit var adapter: TileAdapter
     private lateinit var prefs: Prefs
-    private val backgrounds by lazy { Backgrounds(this, findViewById(R.id.aurora), findViewById(R.id.photos)) }
+    private val backgrounds by lazy { Backgrounds(this, findViewById(R.id.aurora), findViewById(R.id.photos), findViewById(R.id.rain)) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,7 +73,7 @@ class AllAppsActivity : Activity() {
             getString(R.string.app_info),
             getString(R.string.uninstall)
         )
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        AlertDialog.Builder(this, R.style.HomeBaseDialog)
             .setTitle(t.entry.label)
             .setItems(options) { _, which ->
                 when (which) {

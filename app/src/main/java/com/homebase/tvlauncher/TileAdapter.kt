@@ -47,14 +47,17 @@ class TileAdapter(private val ctx: Context, private val tileHeight: Int) : BaseA
             return (usable / columns * 9f / 16f).toInt()
         }
 
-        /** Fills a tile.xml view for any kind of tile. Shared by the home rows and All apps. */
+        /**
+         * Fills a tile.xml view for any kind of tile. Shared by the home rows and All apps.
+         * Returns true if the tile shows its own name inside it (icon tiles); banner tiles don't.
+         */
         fun bind(
             ctx: Context,
             v: View,
             tile: Tile,
             tileHeight: Int,
             cache: MutableMap<String, Pair<Drawable, Boolean>>
-        ) {
+        ): Boolean {
             val image = v.findViewById<ImageView>(R.id.tile_image)
             val label = v.findViewById<TextView>(R.id.tile_label)
             val badge = v.findViewById<TextView>(R.id.tile_badge)
@@ -74,6 +77,7 @@ class TileAdapter(private val ctx: Context, private val tileHeight: Int) : BaseA
                         label.visibility = View.VISIBLE
                     }
                     badge.visibility = if (tile.pinned) View.VISIBLE else View.GONE
+                    return !isBanner
                 }
                 is Tile.Action -> {
                     image.setImageResource(tile.iconRes)
@@ -83,6 +87,7 @@ class TileAdapter(private val ctx: Context, private val tileHeight: Int) : BaseA
                     label.text = tile.label
                     label.visibility = View.VISIBLE
                     badge.visibility = View.GONE
+                    return true
                 }
             }
         }

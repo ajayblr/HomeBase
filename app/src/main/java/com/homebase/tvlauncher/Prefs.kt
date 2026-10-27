@@ -35,15 +35,15 @@ class Prefs(ctx: Context) {
         set(v) = sp.edit().putString("user_name", v.trim()).apply()
 
     var weatherCity: String
-        get() = sp.getString("weather_city", null) ?: "Dublin"
+        get() = sp.getString("weather_city", null) ?: "Lucan, Dublin"
         set(v) = sp.edit().putString("weather_city", v).apply()
 
     var weatherLat: Double
-        get() = sp.getString("weather_lat", null)?.toDoubleOrNull() ?: 53.3498
+        get() = sp.getString("weather_lat", null)?.toDoubleOrNull() ?: 53.3572
         set(v) = sp.edit().putString("weather_lat", v.toString()).apply()
 
     var weatherLon: Double
-        get() = sp.getString("weather_lon", null)?.toDoubleOrNull() ?: -6.2603
+        get() = sp.getString("weather_lon", null)?.toDoubleOrNull() ?: -6.4486
         set(v) = sp.edit().putString("weather_lon", v.toString()).apply()
 
     var weatherCache: String
@@ -80,7 +80,7 @@ class Prefs(ctx: Context) {
     }
 
     var backgroundMode: BackgroundMode
-        get() = runCatching { BackgroundMode.valueOf(sp.getString("bg_mode", null) ?: "") }.getOrDefault(BackgroundMode.AURORA)
+        get() = runCatching { BackgroundMode.valueOf(sp.getString("bg_mode", null) ?: "") }.getOrDefault(BackgroundMode.RAIN)
         set(v) = sp.edit().putString("bg_mode", v.name).apply()
 
     var slideshowMinutes: Int
@@ -114,6 +114,20 @@ class Prefs(ctx: Context) {
 
     fun removeRecent(pkg: String) {
         recents = recents - pkg
+    }
+
+    /** One-time switch to the Apple TV-style look: rain background and Lucan weather. */
+    fun applyStyleV2() {
+        if (sp.getBoolean("style_v2", false)) return
+        sp.edit()
+            .putString("weather_city", "Lucan, Dublin")
+            .putString("weather_lat", "53.3572")
+            .putString("weather_lon", "-6.4486")
+            .putString("weather_cache", "")
+            .putLong("weather_fetched_at", 0L)
+            .putString("bg_mode", BackgroundMode.RAIN.name)
+            .putBoolean("style_v2", true)
+            .apply()
     }
 
     fun pin(pkg: String) {

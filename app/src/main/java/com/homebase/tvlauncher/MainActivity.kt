@@ -23,8 +23,8 @@ class MainActivity : Activity() {
 
     companion object {
         const val COLUMNS = 5
-        const val SIDE_PADDING_DP = 48
-        const val SPACING_DP = 20
+        const val SIDE_PADDING_DP = 64
+        const val SPACING_DP = 36
 
         private const val ACTION_ALL_APPS = "all_apps"
         private const val ACTION_SETTINGS = "settings"
@@ -43,8 +43,8 @@ class MainActivity : Activity() {
     private lateinit var aurora: AuroraView
     private lateinit var backgrounds: Backgrounds
     private lateinit var greetingView: TextView
-    private lateinit var nameView: TextView
-    private lateinit var weatherView: TextView
+    private lateinit var scroll: android.widget.ScrollView
+    private lateinit var miniClock: View
     private lateinit var sleepView: TextView
 
     private val ui = Handler(Looper.getMainLooper())
@@ -69,6 +69,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         prefs = Prefs(this)
+        prefs.applyStyleV2()
 
         if (prefs.firstRun) {
             prefs.pinned = AppRepo.defaultPins(this)
@@ -76,10 +77,20 @@ class MainActivity : Activity() {
         }
 
         aurora = findViewById(R.id.aurora)
-        backgrounds = Backgrounds(this, aurora, findViewById(R.id.photos))
+        backgrounds = Backgrounds(this, aurora, findViewById(R.id.photos), findViewById(R.id.rain))
         greetingView = findViewById(R.id.greeting)
-        nameView = findViewById(R.id.name)
-        weatherView = findViewById(R.id.weather)
+        scroll = findViewById(R.id.rows_scroll)
+        miniClock = findViewById(R.id.mini_clock)
+
+        // Top shelf fills the top ~45% of the screen, like Apple TV
+        val shelf = findViewById<View>(R.id.top_shelf)
+        shelf.layoutParams = shelf.layoutParams.apply { height = (resources.displayMetrics.heightPixels * 0.45f).toInt() }
+
+        // Small clock fades in top-right once the big one scrolls away
+        scroll.viewTreeObserver.addOnScrollChangedListener {
+            val target = if (scroll.scrollY > shelf.height / 2) 1f else 0f
+            if (miniClock.alpha != target) miniClock.animate().alpha(target).setDuration(200).start()
+        }
         sleepView = findViewById(R.id.sleep_status)
 
         homeRows = HomeRows(
@@ -87,7 +98,8 @@ class MainActivity : Activity() {
             findViewById(R.id.rows),
             TileAdapter.tileHeight(this, COLUMNS, SIDE_PADDING_DP, SPACING_DP),
             onClick = { _, tile -> onTileClick(tile) },
-            onMenu = { row, tile -> showTileMenu(row, tile) }
+            onMenu = { row, tile -> showTileMenu(row, tile) },
+            onRowFocused = { index -> if (index == 0) scroll.smoothScrollTo(0, 0) }
         )
 
         val filter = IntentFilter().apply {
@@ -128,27 +140,43 @@ class MainActivity : Activity() {
             AuroraView.Phase.EVENING -> R.string.good_evening
             AuroraView.Phase.NIGHT -> R.string.good_night
         }
-        greetingView.setText(res)
         val name = prefs.userName
-        nameView.text = name
-        nameView.visibility = if (name.isBlank()) View.GONE else View.VISIBLE
+        greetingView.text = if (name.isBlank()) getString(res) else getString(R.string.greeting_fmt, getString(res), name)
     }
 
-    private fun showWeather(now: Weather.Now?, city: String) {
-        if (now == null) {
-            weatherView.visibility = View.GONE
+    private fun showWeather(f: Weather.Forecast?, city: String) {
+        val card = findViewById<View>(R.id.weather_card)
+        if (f == null) {
+            card.visibility = View.INVISIBLE
             return
         }
-        val (icon, text) = Weather.describe(now)
-        weatherView.text = listOf("$icon  ${now.tempC}°", text, city).filter { it.isNotBlank() }.joinToString("  ·  ")
-        weatherView.visibility = View.VISIBLE
+        findViewById<TextView>(R.id.weather_place).text = city
+        findViewById<TextView>(R.id.weather_icon).text = Weather.icon(f.code, f.isDay)
+        findViewById<TextView>(R.id.weather_temp).text = "${f.tempC}°"
+        findViewById<TextView>(R.id.weather_text).text = Weather.text(f.code)
+        val extra = mutableListOf<String>()
+        if (f.highC != null && f.lowC != null) extra += getString(R.string.weather_range, f.highC, f.lowC)
+        if (f.rainChance != null && f.rainChance > 0) extra += getString(R.string.weather_rain, f.rainChance)
+        findViewById<TextView>(R.id.weather_range).text = extra.joinToString("   ")
+
+        val hours = findViewById<LinearLayout>(R.id.weather_hours)
+        hours.removeAllViews()
+        for (h in f.hours) {
+            val item = layoutInflater.inflate(R.layout.weather_hour, hours, false)
+            item.findViewById<TextView>(R.id.hour_time).text = h.label
+            item.findViewById<TextView>(R.id.hour_icon).text = Weather.icon(h.code, h.isDay)
+            item.findViewById<TextView>(R.id.hour_temp).text = "${h.tempC}°"
+            hours.addView(item)
+        }
+        hours.visibility = if (f.hours.isEmpty()) View.GONE else View.VISIBLE
+        card.visibility = View.VISIBLE
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         // Home pressed while already on HomeBase: jump back to the first tile
         if (::homeRows.isInitialized) {
-            findViewById<View>(R.id.rows_scroll).scrollTo(0, 0)
+            scroll.scrollTo(0, 0)
             homeRows.focusFirst()
         }
     }
@@ -449,7 +477,7 @@ class MainActivity : Activity() {
             .show()
     }
 
-    private fun dialog() = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+    private fun dialog() = AlertDialog.Builder(this, R.style.HomeBaseDialog)
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 }

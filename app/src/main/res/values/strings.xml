@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">HomeBase</string>
     <string name="home">Home</string>
-    <string name="hint_hold">Hold OK on a tile for options</string>
+    <string name="hint_hold">Hold OK on an app for options</string>
     <string name="hint_pin">Hold OK to pin an app to Home</string>
     <string name="all_apps">All apps</string>
     <string name="all_apps_count">All apps (%1$d)</string>
@@ -91,4 +91,10 @@
     <string name="row_recent">Continue watching</string>
     <string name="remove_recent">Remove from Continue watching</string>
     <string name="clear_recents">Clear Continue watching</string>
+
+    <string name="bg_rain">Rain on glass</string>
+    <string name="greeting_fmt">%1$s, %2$s</string>
+    <string name="weather_range">H %1$d°  L %2$d°</string>
+    <string name="weather_rain">☔ %1$d%%</string>
+    <string name="hour_now">Now</string>
 </resources>

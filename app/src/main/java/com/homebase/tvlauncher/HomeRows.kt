@@ -28,7 +28,8 @@ class HomeRows(
     private val container: LinearLayout,
     private val tileHeight: Int,
     private val onClick: (row: HomeRow, tile: Tile) -> Unit,
-    private val onMenu: (row: HomeRow, tile: Tile) -> Unit
+    private val onMenu: (row: HomeRow, tile: Tile) -> Unit,
+    private val onRowFocused: (rowIndex: Int) -> Unit = {}
 ) {
     private val inflater = LayoutInflater.from(ctx)
     private val visuals = HashMap<String, Pair<Drawable, Boolean>>()
@@ -50,12 +51,15 @@ class HomeRows(
         container.removeAllViews()
 
         val tileWidth = tileHeight * 16 / 9
-        val gap = (20 * density).toInt()
+        val gap = (36 * density).toInt()
         var restore: View? = null
         var first: View? = null
 
+        var rowIndex = -1
         for (row in rows) {
             if (row.tiles.isEmpty()) continue
+            rowIndex++
+            val thisRow = rowIndex
 
             val title = inflater.inflate(R.layout.row_title, container, false) as TextView
             title.text = row.title
@@ -66,8 +70,10 @@ class HomeRows(
                 clipChildren = false
                 clipToPadding = false
                 isFillViewport = false
-                val vPad = (14 * density).toInt()
-                setPadding(0, vPad, 0, vPad)
+                // Room for the selected tile to lift and grow without being clipped
+                val vPad = (18 * density).toInt()
+                val hPad = (14 * density).toInt()
+                setPadding(hPad, vPad, hPad, (4 * density).toInt())
             }
             val strip = LinearLayout(ctx).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -75,27 +81,41 @@ class HomeRows(
                 clipToPadding = false
             }
             scroller.addView(strip)
-            container.addView(scroller)
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            lp.marginStart = -(14 * density).toInt()
+            lp.marginEnd = -(14 * density).toInt()
+            container.addView(scroller, lp)
 
             row.tiles.forEachIndexed { i, tile ->
-                val v = inflater.inflate(R.layout.tile, strip, false)
-                v.layoutParams = LinearLayout.LayoutParams(tileWidth, tileHeight).apply {
+                val cell = inflater.inflate(R.layout.home_cell, strip, false)
+                cell.layoutParams = LinearLayout.LayoutParams(tileWidth, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                     if (i > 0) marginStart = gap
                 }
+                val v = cell.findViewById<View>(R.id.tile)
+                val label = cell.findViewById<TextView>(R.id.cell_label)
+                v.layoutParams = LinearLayout.LayoutParams(tileWidth, tileHeight)
                 v.clipToOutline = true
                 v.isFocusable = true
                 v.isFocusableInTouchMode = true
                 v.foreground = ctx.getDrawable(R.drawable.tile_focus)
                 v.tag = row.key to tile.key()
-                TileAdapter.bind(ctx, v, tile, tileHeight, visuals)
+                val namedInside = TileAdapter.bind(ctx, v, tile, tileHeight, visuals)
+                label.text = when (tile) {
+                    is Tile.App -> tile.entry.label
+                    is Tile.Action -> tile.label
+                }
 
                 v.setOnClickListener { onClick(row, tile) }
                 v.setOnLongClickListener { onMenu(row, tile); true }
                 v.setOnFocusChangeListener { view, has ->
-                    val s = if (has) 1.08f else 1f
-                    view.animate().scaleX(s).scaleY(s).translationZ(if (has) 12f else 0f).setDuration(130).start()
+                    // Apple TV-style lift: grow, rise above the others, and show the name underneath
+                    val s = if (has) 1.12f else 1f
+                    view.animate().scaleX(s).scaleY(s).translationZ(if (has) 28f * density else 0f)
+                        .setDuration(160).start()
+                    if (!namedInside) label.animate().alpha(if (has) 1f else 0f).translationY(if (has) 6f * density else 0f).setDuration(160).start()
+                    if (has) onRowFocused(thisRow)
                 }
-                strip.addView(v)
+                strip.addView(cell)
 
                 if (first == null) first = v
                 if (tile.key() == focusedKey && restore == null) restore = v
@@ -117,7 +137,7 @@ class HomeRows(
             val c = container.getChildAt(i)
             if (c is HorizontalScrollView) {
                 c.scrollTo(0, 0)
-                ((c.getChildAt(0) as? LinearLayout)?.getChildAt(0))?.requestFocus()
+                ((c.getChildAt(0) as? LinearLayout)?.getChildAt(0))?.findViewById<View>(R.id.tile)?.requestFocus()
                 return
             }
         }

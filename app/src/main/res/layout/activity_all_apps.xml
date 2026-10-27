@@ -4,10 +4,16 @@
     android:layout_height="match_parent"
     android:background="@color/window_bg">
 
+    <com.homebase.tvlauncher.RainView
+        android:id="@+id/rain"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
     <com.homebase.tvlauncher.AuroraView
         android:id="@+id/aurora"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 
     <com.homebase.tvlauncher.PhotoWall
         android:id="@+id/photos"
@@ -21,9 +27,9 @@
     android:clipChildren="false"
     android:clipToPadding="false"
     android:orientation="vertical"
-    android:paddingStart="48dp"
+    android:paddingStart="64dp"
     android:paddingTop="32dp"
-    android:paddingEnd="48dp">
+    android:paddingEnd="64dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -36,16 +42,14 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:fontFamily="sans-serif-light"
-            android:textColor="@color/text_primary"
-            android:textSize="36sp" />
+            android:textSize="40sp"
+            android:textFontWeight="300" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/hint_pin"
-            android:textColor="@color/text_hint"
-            android:textSize="14sp" />
+            style="@style/Text.Hint"
+            android:text="@string/hint_pin" />
     </LinearLayout>
 
     <GridView
@@ -57,7 +61,7 @@
         android:clipToPadding="false"
         android:drawSelectorOnTop="true"
         android:horizontalSpacing="20dp"
-        android:listSelector="@drawable/tile_selector"
+        android:listSelector="@drawable/tile_focus"
         android:numColumns="6"
         android:paddingTop="20dp"
         android:paddingBottom="32dp"
