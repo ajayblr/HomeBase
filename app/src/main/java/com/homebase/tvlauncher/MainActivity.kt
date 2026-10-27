@@ -32,7 +32,9 @@ class MainActivity : Activity() {
         private const val ACTION_LIVE_TV = "live_tv"
         private const val ACTION_SLEEP = "sleep"
         private const val ROW_RECENT = "recent"
-        private const val MAX_RECENTS = 6
+        private const val MAX_RECENTS = 1
+        private const val ROW_QUICK = "quick"
+        private const val ACTION_INPUTS = "inputs"
         private const val MAX_APPTS = 3
         private const val ACTION_SCREEN_OFF = "screen_off"
         private const val INPUT_PREFIX = "input:"
@@ -328,39 +330,60 @@ class MainActivity : Activity() {
         val byCat = pinnedApps.groupBy { Categories.of(this, it.pkg, overrides) }
 
         val result = mutableListOf<HomeRow>()
-        // Apps opened recently; opening one picks up where you left off
+
+        // Top: sleep timer and a single Inputs button (opens a picker)
+        val quick = mutableListOf<Tile>(sleepTile())
+        if (Inputs.list(this).isNotEmpty() || installed.containsKey("com.tcl.tv")) {
+            quick += Tile.Action(ACTION_INPUTS, getString(R.string.inputs), R.drawable.ic_input)
+        }
+        result += HomeRow(ROW_QUICK, "", quick)
+
+        // Continue watching: just the most recently opened app
         val recent = prefs.recents.mapNotNull { installed[it] }.take(MAX_RECENTS)
         if (recent.isNotEmpty()) {
             result += HomeRow(ROW_RECENT, getString(R.string.row_recent), recent.map { Tile.App(it) })
         }
+
         for (cat in Category.values()) {
             val apps = byCat[cat].orEmpty()
             if (apps.isNotEmpty()) {
                 result += HomeRow("cat:" + cat.name, getString(cat.titleRes), apps.map { Tile.App(it) })
             }
         }
-        val inputTiles = mutableListOf<Tile>()
-        Inputs.list(this).forEach { inputTiles += Tile.Action(INPUT_PREFIX + it.id, it.label, R.drawable.ic_input) }
-        if (installed.containsKey("com.tcl.tv")) {
-            inputTiles += Tile.Action(ACTION_LIVE_TV, getString(R.string.tv_aerial), R.drawable.ic_tv)
-        }
-        if (inputTiles.isNotEmpty()) {
-            // Inputs go straight after Live TV
-            val at = result.indexOfFirst { it.key == "cat:" + Category.MUSIC.name || it.key == "cat:" + Category.GAMES.name || it.key == "cat:" + Category.APPS.name }
-            val row = HomeRow("inputs", getString(R.string.row_inputs), inputTiles)
-            if (at >= 0) result.add(at, row) else result += row
-        }
         result += HomeRow("tools", getString(R.string.row_tools), toolTiles())
         return result
     }
 
+    private fun sleepTile() = Tile.Action(
+        ACTION_SLEEP,
+        getString(if (prefs.sleepAt > System.currentTimeMillis()) R.string.sleep_timer_on else R.string.sleep_timer),
+        R.drawable.ic_timer
+    )
+
+    /** Lists HDMI/AV inputs and the TV aerial; picking one switches to it. */
+    private fun showInputPicker() {
+        val choices = mutableListOf<Pair<String, () -> Unit>>()
+        Inputs.list(this).forEach { input ->
+            choices += input.label to {
+                if (!Inputs.open(this, input.id)) toast(getString(R.string.cannot_open))
+            }
+        }
+        if (AppRepo.allApps(this).any { it.pkg == "com.tcl.tv" }) {
+            choices += getString(R.string.tv_aerial) to {
+                if (!AppRepo.launch(this, "com.tcl.tv")) toast(getString(R.string.cannot_open))
+            }
+        }
+        if (choices.isEmpty()) {
+            toast(getString(R.string.no_inputs))
+            return
+        }
+        dialog().setTitle(R.string.inputs)
+            .setItems(choices.map { it.first }.toTypedArray()) { _, which -> choices[which].second() }
+            .show()
+    }
+
     private fun toolTiles(): List<Tile> = listOf(
         Tile.Action(ACTION_ALL_APPS, getString(R.string.all_apps), R.drawable.ic_apps),
-        Tile.Action(
-            ACTION_SLEEP,
-            getString(if (prefs.sleepAt > System.currentTimeMillis()) R.string.sleep_timer_on else R.string.sleep_timer),
-            R.drawable.ic_timer
-        ),
         Tile.Action(ACTION_SCREEN_OFF, getString(R.string.screen_off), R.drawable.ic_power),
         Tile.Action(ACTION_SETTINGS, getString(R.string.tv_settings), R.drawable.ic_settings),
         Tile.Action(ACTION_LAUNCHER, getString(R.string.launcher_options), R.drawable.ic_tune)
@@ -373,6 +396,7 @@ class MainActivity : Activity() {
                 if (!Inputs.open(this, tile.id.removePrefix(INPUT_PREFIX))) toast(getString(R.string.cannot_open))
             } else when (tile.id) {
                 ACTION_SLEEP -> showSleepTimer()
+                ACTION_INPUTS -> showInputPicker()
                 ACTION_SCREEN_OFF -> withService { it.sleepNow() }
                 ACTION_LIVE_TV -> if (!AppRepo.launch(this, "com.tcl.tv")) toast(getString(R.string.cannot_open))
                 ACTION_ALL_APPS -> startActivity(Intent(this, AllAppsActivity::class.java))

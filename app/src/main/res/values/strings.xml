@@ -115,4 +115,7 @@
     <string name="ss_signed_in_ok">Signed in. Loading your appointments…</string>
     <string name="ss_sign_out">Sign out</string>
     <string name="ss_signed_out_ok">Signed out of Subscription Savior</string>
+
+    <string name="inputs">Inputs</string>
+    <string name="no_inputs">No inputs found on this TV</string>
 </resources>

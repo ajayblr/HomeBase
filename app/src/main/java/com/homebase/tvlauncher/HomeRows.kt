@@ -61,9 +61,11 @@ class HomeRows(
             rowIndex++
             val thisRow = rowIndex
 
-            val title = inflater.inflate(R.layout.row_title, container, false) as TextView
-            title.text = row.title
-            container.addView(title)
+            if (row.title.isNotBlank()) {
+                val title = inflater.inflate(R.layout.row_title, container, false) as TextView
+                title.text = row.title
+                container.addView(title)
+            }
 
             val scroller = HorizontalScrollView(ctx).apply {
                 isHorizontalScrollBarEnabled = false
