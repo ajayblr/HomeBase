@@ -6,4 +6,6 @@
     <color name="tile">#59101828</color>
     <color name="accent">#FF38BDF8</color>
     <color name="window_bg">#FF0A0F1A</color>
+    <color name="price_up">#FF4ADE80</color>
+    <color name="price_down">#FFF87171</color>
 </resources>

@@ -159,6 +159,14 @@ class Prefs(ctx: Context) {
         get() = sp.getLong("ss_fetched_at", 0L)
         set(v) = sp.edit().putLong("ss_fetched_at", v).apply()
 
+    var cryptoCache: String
+        get() = sp.getString("crypto_cache", "") ?: ""
+        set(v) = sp.edit().putString("crypto_cache", v).apply()
+
+    var cryptoFetchedAt: Long
+        get() = sp.getLong("crypto_fetched_at", 0L)
+        set(v) = sp.edit().putLong("crypto_fetched_at", v).apply()
+
     fun pin(pkg: String) {
         if (pkg !in pinned) pinned = pinned + pkg
     }

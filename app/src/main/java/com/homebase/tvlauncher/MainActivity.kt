@@ -58,6 +58,7 @@ class MainActivity : Activity() {
             if (aurora.visibility == View.VISIBLE) aurora.start() // picks up the time-of-day palette
             Weather.load(this@MainActivity) { now, city -> showWeather(now, city) }
             Appointments.load(this@MainActivity) { list -> showAppointments(list) }
+            Crypto.load(this@MainActivity) { quotes -> showCrypto(quotes) }
             ui.postDelayed(this, 60_000)
         }
     }
@@ -179,6 +180,45 @@ class MainActivity : Activity() {
         }
         hours.visibility = if (f.hours.isEmpty()) View.GONE else View.VISIBLE
         card.visibility = View.VISIBLE
+    }
+
+    private fun showCrypto(quotes: List<Crypto.Quote>?) {
+        val row = findViewById<LinearLayout>(R.id.crypto_row)
+        if (quotes.isNullOrEmpty()) {
+            row.visibility = View.GONE
+            return
+        }
+        row.removeAllViews()
+        quotes.forEachIndexed { i, q ->
+            val v = layoutInflater.inflate(R.layout.crypto_item, row, false)
+            v.findViewById<View>(R.id.crypto_sep).visibility = if (i == 0) View.GONE else View.VISIBLE
+            v.findViewById<TextView>(R.id.crypto_symbol).text = q.symbol
+            v.findViewById<TextView>(R.id.crypto_price).text = euro(q.eur)
+            val change = v.findViewById<TextView>(R.id.crypto_change)
+            val c = q.change24h
+            if (c == null) {
+                change.visibility = View.GONE
+            } else {
+                change.text = String.format(java.util.Locale.US, "%s%.1f%%", if (c >= 0) "▲" else "▼", kotlin.math.abs(c))
+                change.setTextColor(getColor(if (c >= 0) R.color.price_up else R.color.price_down))
+            }
+            row.addView(v)
+        }
+        row.visibility = View.VISIBLE
+    }
+
+    /** €61,234 for big prices, €2,345.6 for mid, €0.3456 for small. */
+    private fun euro(v: Double): String {
+        val nf = java.text.NumberFormat.getCurrencyInstance(java.util.Locale("en", "IE"))
+        nf.currency = java.util.Currency.getInstance("EUR")
+        val digits = when {
+            v >= 1000 -> 0
+            v >= 1 -> 2
+            else -> 4
+        }
+        nf.minimumFractionDigits = digits
+        nf.maximumFractionDigits = digits
+        return nf.format(v)
     }
 
     private fun showAppointments(list: List<Appointments.Appt>?) {
