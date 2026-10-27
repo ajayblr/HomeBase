@@ -97,4 +97,22 @@
     <string name="weather_range">H %1$d°  L %2$d°</string>
     <string name="weather_rain">☔ %1$d%%</string>
     <string name="hour_now">Now</string>
+
+    <string name="appt_title">Upcoming · next 30 days</string>
+    <string name="appt_none">Nothing booked in the next 30 days</string>
+    <string name="appt_more">+%1$d more</string>
+    <string name="appt_today">Today</string>
+    <string name="appt_tomorrow">Tomorrow</string>
+    <string name="appt_all_day">All day</string>
+    <string name="ss_account">Appointments (Subscription Savior)</string>
+    <string name="ss_signed_in">Appointments: %1$s</string>
+    <string name="ss_signed_out">Appointments: sign in</string>
+    <string name="ss_sign_in">Sign in to Subscription Savior</string>
+    <string name="ss_sign_in_help">Used once to sign in. HomeBase keeps only a sign-in token on this TV, never your password.</string>
+    <string name="ss_email">Email</string>
+    <string name="ss_password">Password</string>
+    <string name="ss_signing_in">Signing in…</string>
+    <string name="ss_signed_in_ok">Signed in. Loading your appointments…</string>
+    <string name="ss_sign_out">Sign out</string>
+    <string name="ss_signed_out_ok">Signed out of Subscription Savior</string>
 </resources>

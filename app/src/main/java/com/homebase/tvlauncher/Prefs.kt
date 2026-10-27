@@ -130,6 +130,35 @@ class Prefs(ctx: Context) {
             .apply()
     }
 
+    // ---- Subscription Savior (appointments). The password is never stored. ----
+    private fun str(k: String) = sp.getString(k, "") ?: ""
+    private fun put(k: String, v: String) = sp.edit().putString(k, v).apply()
+
+    var ssEmail: String
+        get() = str("ss_email")
+        set(v) = put("ss_email", v)
+    var ssUid: String
+        get() = str("ss_uid")
+        set(v) = put("ss_uid", v)
+    var ssRefreshToken: String
+        get() = str("ss_refresh")
+        set(v) = put("ss_refresh", v)
+    var ssIdToken: String
+        get() = str("ss_id_token")
+        set(v) = put("ss_id_token", v)
+    var ssIdTokenExpiry: Long
+        get() = sp.getLong("ss_id_expiry", 0L)
+        set(v) = sp.edit().putLong("ss_id_expiry", v).apply()
+    var ssApiKey: String
+        get() = str("ss_api_key")
+        set(v) = put("ss_api_key", v)
+    var ssCache: String
+        get() = str("ss_cache")
+        set(v) = put("ss_cache", v)
+    var ssFetchedAt: Long
+        get() = sp.getLong("ss_fetched_at", 0L)
+        set(v) = sp.edit().putLong("ss_fetched_at", v).apply()
+
     fun pin(pkg: String) {
         if (pkg !in pinned) pinned = pinned + pkg
     }

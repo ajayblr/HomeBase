@@ -33,6 +33,7 @@ class MainActivity : Activity() {
         private const val ACTION_SLEEP = "sleep"
         private const val ROW_RECENT = "recent"
         private const val MAX_RECENTS = 6
+        private const val MAX_APPTS = 3
         private const val ACTION_SCREEN_OFF = "screen_off"
         private const val INPUT_PREFIX = "input:"
     }
@@ -54,6 +55,7 @@ class MainActivity : Activity() {
             updateSleepStatus()
             if (aurora.visibility == View.VISIBLE) aurora.start() // picks up the time-of-day palette
             Weather.load(this@MainActivity) { now, city -> showWeather(now, city) }
+            Appointments.load(this@MainActivity) { list -> showAppointments(list) }
             ui.postDelayed(this, 60_000)
         }
     }
@@ -84,7 +86,7 @@ class MainActivity : Activity() {
 
         // Top shelf fills the top ~45% of the screen, like Apple TV
         val shelf = findViewById<View>(R.id.top_shelf)
-        shelf.layoutParams = shelf.layoutParams.apply { height = (resources.displayMetrics.heightPixels * 0.45f).toInt() }
+        shelf.minimumHeight = (resources.displayMetrics.heightPixels * 0.45f).toInt()
 
         // Small clock fades in top-right once the big one scrolls away
         scroll.viewTreeObserver.addOnScrollChangedListener {
@@ -161,15 +163,130 @@ class MainActivity : Activity() {
 
         val hours = findViewById<LinearLayout>(R.id.weather_hours)
         hours.removeAllViews()
-        for (h in f.hours) {
+        for (h in f.hours.take(4)) {
             val item = layoutInflater.inflate(R.layout.weather_hour, hours, false)
-            item.findViewById<TextView>(R.id.hour_time).text = h.label
+            item.findViewById<TextView>(R.id.hour_time).text = h.label + ":00"
             item.findViewById<TextView>(R.id.hour_icon).text = Weather.icon(h.code, h.isDay)
             item.findViewById<TextView>(R.id.hour_temp).text = "${h.tempC}°"
             hours.addView(item)
         }
         hours.visibility = if (f.hours.isEmpty()) View.GONE else View.VISIBLE
         card.visibility = View.VISIBLE
+    }
+
+    private fun showAppointments(list: List<Appointments.Appt>?) {
+        val card = findViewById<View>(R.id.appt_card)
+        if (list == null) {
+            // Not signed in: keep the screen clean, sign in from Launcher options
+            card.visibility = View.GONE
+            return
+        }
+        val box = findViewById<LinearLayout>(R.id.appt_list)
+        box.removeAllViews()
+        if (list.isEmpty()) {
+            val none = layoutInflater.inflate(R.layout.appt_item, box, false)
+            none.findViewById<View>(R.id.appt_bar).visibility = View.INVISIBLE
+            none.findViewById<TextView>(R.id.appt_name).setText(R.string.appt_none)
+            none.findViewById<View>(R.id.appt_meta).visibility = View.GONE
+            box.addView(none)
+        }
+        val timeFmt = android.text.format.DateFormat.getTimeFormat(this)
+        val dow = java.text.SimpleDateFormat("EEE", java.util.Locale.getDefault())
+        val day = java.text.SimpleDateFormat("d MMM", java.util.Locale.getDefault())
+        val today = java.util.Calendar.getInstance()
+        val tomorrow = (today.clone() as java.util.Calendar).apply { add(java.util.Calendar.DAY_OF_YEAR, 1) }
+        fun sameDay(a: java.util.Calendar, d: java.util.Date): Boolean {
+            val c = java.util.Calendar.getInstance().apply { time = d }
+            return a.get(java.util.Calendar.YEAR) == c.get(java.util.Calendar.YEAR) &&
+                a.get(java.util.Calendar.DAY_OF_YEAR) == c.get(java.util.Calendar.DAY_OF_YEAR)
+        }
+
+        val shown = list.take(MAX_APPTS)
+        for (a in shown) {
+            val v = layoutInflater.inflate(R.layout.appt_item, box, false)
+            v.findViewById<TextView>(R.id.appt_dow).text = when {
+                sameDay(today, a.start) -> getString(R.string.appt_today)
+                sameDay(tomorrow, a.start) -> getString(R.string.appt_tomorrow)
+                else -> dow.format(a.start)
+            }
+            v.findViewById<TextView>(R.id.appt_day).text = day.format(a.start)
+            v.findViewById<TextView>(R.id.appt_name).text = a.title
+            val time = if (a.allDay) getString(R.string.appt_all_day) else timeFmt.format(a.start)
+            val place = a.location.substringBefore(',').trim()
+            v.findViewById<TextView>(R.id.appt_meta).text = if (place.isBlank()) time else "$time  ·  $place"
+            a.color?.let { c ->
+                runCatching { android.graphics.Color.parseColor(c) }.getOrNull()?.let {
+                    v.findViewById<View>(R.id.appt_bar).background.mutate().setTint(it)
+                }
+            }
+            box.addView(v)
+        }
+        if (list.size > shown.size) {
+            val more = TextView(this, null, 0, R.style.Text_Small)
+            more.text = getString(R.string.appt_more, list.size - shown.size)
+            more.setPadding(0, (4 * resources.displayMetrics.density).toInt(), 0, 0)
+            box.addView(more)
+        }
+        card.visibility = View.VISIBLE
+    }
+
+    private fun accountOption(): Pair<String, () -> Unit> =
+        if (Appointments.isSignedIn(this)) {
+            getString(R.string.ss_signed_in, prefs.ssEmail) to { manageAccount() }
+        } else {
+            getString(R.string.ss_signed_out) to { signInDialog() }
+        }
+
+    private fun manageAccount() {
+        val items = arrayOf(getString(R.string.ss_sign_out))
+        dialog().setTitle(R.string.ss_account).setItems(items) { _, _ ->
+            Appointments.signOut(this)
+            showAppointments(null)
+            toast(getString(R.string.ss_signed_out_ok))
+        }.show()
+    }
+
+    private fun signInDialog() {
+        val pad = (20 * resources.displayMetrics.density).toInt()
+        val email = EditText(this).apply {
+            hint = getString(R.string.ss_email)
+            setText(prefs.ssEmail)
+            setSingleLine()
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        }
+        val password = EditText(this).apply {
+            hint = getString(R.string.ss_password)
+            setSingleLine()
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val form = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, 0, pad, 0)
+            addView(email)
+            addView(password)
+        }
+        dialog().setTitle(R.string.ss_sign_in)
+            .setMessage(R.string.ss_sign_in_help)
+            .setView(form)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val e = email.text.toString()
+                val pw = password.text.toString()
+                if (e.isBlank() || pw.isEmpty()) return@setPositiveButton
+                toast(getString(R.string.ss_signing_in))
+                thread(name = "ss-sign-in") {
+                    val error = Appointments.signIn(this, e, pw)
+                    runOnUiThread {
+                        if (error != null) {
+                            toast(error)
+                        } else {
+                            toast(getString(R.string.ss_signed_in_ok))
+                            Appointments.load(this, force = true) { list -> showAppointments(list) }
+                        }
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -327,6 +444,7 @@ class MainActivity : Activity() {
         val items = listOf<Pair<String, () -> Unit>>(
             getString(R.string.your_name) + ": " + prefs.userName to { editName() },
             getString(R.string.weather_location) + ": " + prefs.weatherCity to { editWeatherCity() },
+            accountOption(),
             getString(R.string.background) + ": " + getString(prefs.backgroundMode.labelRes) to { chooseBackground() },
             getString(R.string.slideshow_every, prefs.slideshowMinutes) to { chooseSlideshowInterval() },
             getString(R.string.check_updates) to { Updater.check(this, silent = false) },
