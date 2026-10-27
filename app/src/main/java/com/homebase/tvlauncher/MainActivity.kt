@@ -88,14 +88,19 @@ class MainActivity : Activity() {
 
         // Top shelf fills the top ~45% of the screen, like Apple TV
         val shelf = findViewById<View>(R.id.top_shelf)
-        shelf.minimumHeight = (resources.displayMetrics.heightPixels * 0.45f).toInt()
 
         // Small clock fades in top-right once the big one scrolls away
         scroll.viewTreeObserver.addOnScrollChangedListener {
             val target = if (scroll.scrollY > shelf.height / 2) 1f else 0f
             if (miniClock.alpha != target) miniClock.animate().alpha(target).setDuration(200).start()
         }
-        sleepView = findViewById(R.id.sleep_status)
+        sleepView = findViewById(R.id.chip_sleep)
+        sleepView.setOnClickListener { showSleepTimer() }
+        findViewById<View>(R.id.chip_inputs).setOnClickListener { showInputPicker() }
+        // Keep the top of the screen in view when using the quick buttons
+        val toTop = View.OnFocusChangeListener { _, has -> if (has) scroll.smoothScrollTo(0, 0) }
+        sleepView.onFocusChangeListener = toTop
+        findViewById<View>(R.id.chip_inputs).onFocusChangeListener = toTop
 
         homeRows = HomeRows(
             this,
@@ -331,19 +336,6 @@ class MainActivity : Activity() {
 
         val result = mutableListOf<HomeRow>()
 
-        // Top: sleep timer and a single Inputs button (opens a picker)
-        val quick = mutableListOf<Tile>(sleepTile())
-        if (Inputs.list(this).isNotEmpty() || installed.containsKey("com.tcl.tv")) {
-            quick += Tile.Action(ACTION_INPUTS, getString(R.string.inputs), R.drawable.ic_input)
-        }
-        result += HomeRow(ROW_QUICK, "", quick)
-
-        // Continue watching: just the most recently opened app
-        val recent = prefs.recents.mapNotNull { installed[it] }.take(MAX_RECENTS)
-        if (recent.isNotEmpty()) {
-            result += HomeRow(ROW_RECENT, getString(R.string.row_recent), recent.map { Tile.App(it) })
-        }
-
         for (cat in Category.values()) {
             val apps = byCat[cat].orEmpty()
             if (apps.isNotEmpty()) {
@@ -487,12 +479,11 @@ class MainActivity : Activity() {
 
     private fun updateSleepStatus() {
         val left = prefs.sleepAt - System.currentTimeMillis()
-        if (prefs.sleepAt > 0 && left > 0 && HomeWatcherService.isRunning) {
+        sleepView.text = if (prefs.sleepAt > 0 && left > 0 && HomeWatcherService.isRunning) {
             val mins = ((left + 59_999) / 60_000).toInt()
-            sleepView.text = getString(R.string.sleep_status, mins)
-            sleepView.visibility = View.VISIBLE
+            getString(R.string.sleep_chip_on, mins)
         } else {
-            sleepView.visibility = View.GONE
+            getString(R.string.sleep_timer)
         }
     }
 

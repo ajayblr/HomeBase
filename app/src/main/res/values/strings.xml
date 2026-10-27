@@ -118,4 +118,6 @@
 
     <string name="inputs">Inputs</string>
     <string name="no_inputs">No inputs found on this TV</string>
+
+    <string name="sleep_chip_on">Sleep in %1$d min</string>
 </resources>
