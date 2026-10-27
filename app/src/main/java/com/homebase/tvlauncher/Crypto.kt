@@ -16,7 +16,7 @@ object Crypto {
     private const val REFRESH_MS = 5L * 60 * 1000
 
     /** Shown left to right. CoinGecko id -> ticker symbol. */
-    val COINS = linkedMapOf("bitcoin" to "BTC", "ethereum" to "ETH", "cardano" to "ADA")
+    val COINS = linkedMapOf("cardano" to "ADA", "bitcoin" to "BTC")
 
     data class Quote(val symbol: String, val eur: Double, val change24h: Double?)
 

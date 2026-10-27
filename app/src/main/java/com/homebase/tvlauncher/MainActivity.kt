@@ -185,7 +185,7 @@ class MainActivity : Activity() {
     private fun showCrypto(quotes: List<Crypto.Quote>?) {
         val row = findViewById<LinearLayout>(R.id.crypto_row)
         if (quotes.isNullOrEmpty()) {
-            row.visibility = View.GONE
+            row.visibility = View.INVISIBLE // keeps the layout steady
             return
         }
         row.removeAllViews()
